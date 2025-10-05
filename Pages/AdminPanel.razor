@@ -1,0 +1,360 @@
+@page "/admin-panel"
+@inject IUserService UserService
+@inject IWorkspaceService WorkspaceService
+@inject ICurrentUserService CurrentUserService
+@inject IConfigurationService ConfigurationService
+@inject NavigationManager Navigation
+
+<PageTitle>Admin Panel - SharedHosting</PageTitle>
+
+@if (currentUser == null || currentUser.Role != UserRole.Admin)
+{
+    <div class="alert alert-danger" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>Access denied. Admin role required.
+    </div>
+}
+else
+{
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="mb-0"><i class="fas fa-cog text-danger me-3"></i>Admin Panel</h1>
+            <p class="text-muted mt-2">Manage users, workspaces, and system configuration</p>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-users text-primary me-2"></i>User Management</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <button class="btn btn-primary me-2" @onclick="LoadUsers">
+                    <i class="fas fa-sync me-1"></i>Load Users
+                </button>
+                <button class="btn btn-success" @onclick="ShowCreateUserForm">
+                    <i class="fas fa-user-plus me-1"></i>Create User
+                </button>
+            </div>
+
+            @if (users != null)
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-id-badge me-1"></i>ID</th>
+                                <th><i class="fas fa-user me-1"></i>Username</th>
+                                <th><i class="fas fa-envelope me-1"></i>Email</th>
+                                <th><i class="fas fa-shield-alt me-1"></i>Role</th>
+                                <th><i class="fas fa-cogs me-1"></i>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var user in users)
+                            {
+                                <tr>
+                                    <td>@user.Id</td>
+                                    <td>@user.Username</td>
+                                    <td>@user.Email</td>
+                                    <td>
+                                        <span class="badge bg-@(user.Role == UserRole.Admin ? "danger" : "secondary")">@user.Role</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-outline-primary btn-sm me-1" @onclick="() => EditUser(user)">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteUser(user.Id)">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            @if (showCreateUser)
+            {
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">Create New User</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Username</label>
+                                <input @bind="newUser.Username" class="form-control" placeholder="Enter username" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email</label>
+                                <input @bind="newUser.Email" type="email" class="form-control" placeholder="Enter email" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Password</label>
+                                <input @bind="newUser.PasswordHash" type="password" class="form-control" placeholder="Enter password" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Role</label>
+                                <select @bind="newUser.Role" class="form-select">
+                                    <option value="User">User</option>
+                                    <option value="Admin">Admin</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-success" @onclick="CreateUser">
+                                <i class="fas fa-check me-1"></i>Create
+                            </button>
+                            <button class="btn btn-secondary" @onclick="CancelCreateUser">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (editingUser != null)
+            {
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">Edit User: @editingUser.Username</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Username</label>
+                                <input @bind="editingUser.Username" class="form-control" placeholder="Enter username" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email</label>
+                                <input @bind="editingUser.Email" type="email" class="form-control" placeholder="Enter email" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Role</label>
+                                <select @bind="editingUser.Role" class="form-select">
+                                    <option value="User">User</option>
+                                    <option value="Admin">Admin</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary" @onclick="UpdateUser">
+                                <i class="fas fa-save me-1"></i>Update
+                            </button>
+                            <button class="btn btn-secondary" @onclick="CancelEditUser">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-folder-open text-warning me-2"></i>Workspace Oversight</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <button class="btn btn-primary" @onclick="LoadWorkspaces">
+                    <i class="fas fa-sync me-1"></i>Load Workspaces
+                </button>
+            </div>
+
+            @if (workspaces != null)
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-id-badge me-1"></i>ID</th>
+                                <th><i class="fas fa-folder me-1"></i>Name</th>
+                                <th><i class="fas fa-info-circle me-1"></i>Description</th>
+                                <th><i class="fas fa-user me-1"></i>Owner</th>
+                                <th><i class="fas fa-cogs me-1"></i>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var workspace in workspaces)
+                            {
+                                <tr>
+                                    <td>@workspace.Id</td>
+                                    <td>@workspace.Name</td>
+                                    <td>@workspace.Description</td>
+                                    <td>@workspace.Owner?.Username</td>
+                                    <td>
+                                        <button class="btn btn-outline-warning btn-sm" @onclick="() => AssignUserToWorkspace(workspace)">
+                                            <i class="fas fa-user-plus"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            @if (assigningWorkspace != null)
+            {
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">Assign User to Workspace: @assigningWorkspace.Name</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Select User</label>
+                                <select @bind="selectedUserId" class="form-select">
+                                    <option value="">Select User</option>
+                                    @foreach (var user in users ?? new List<ApplicationUser>())
+                                    {
+                                        <option value="@user.Id">@user.Username</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-warning" @onclick="ConfirmAssignUser">
+                                <i class="fas fa-check me-1"></i>Assign
+                            </button>
+                            <button class="btn btn-secondary" @onclick="CancelAssign">
+                                <i class="fas fa-times me-1"></i>Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-sliders-h text-info me-2"></i>System Configuration</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label class="form-label">Storage Type</label>
+                        <div class="d-flex align-items-center">
+                            <select @bind="storageType" class="form-select me-2">
+                                <option value="Local">Local</option>
+                                <option value="Ftp">FTP</option>
+                                <option value="S3">S3</option>
+                            </select>
+                            <button class="btn btn-info" @onclick="UpdateStorageTypeAsync">
+                                <i class="fas fa-save me-1"></i>Update
+                            </button>
+                        </div>
+                        <small class="text-muted">Current: <strong>@storageType</strong></small>
+                    </div>
+                </div>
+            </div>
+            <!-- Add more settings as needed -->
+        </div>
+    </div>
+}
+
+@code {
+    private ApplicationUser currentUser;
+    private IEnumerable<ApplicationUser> users;
+    private IEnumerable<Workspace> workspaces;
+    private ApplicationUser newUser = new();
+    private ApplicationUser editingUser;
+    private bool showCreateUser = false;
+    private Workspace assigningWorkspace;
+    private int selectedUserId;
+    private string storageType = "Local"; // Default, load from config
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = CurrentUserService.GetCurrentUser();
+        if (currentUser.Role != UserRole.Admin)
+        {
+            Navigation.NavigateTo("/dashboard");
+            return;
+        }
+        storageType = await ConfigurationService.GetStorageTypeAsync();
+    }
+
+    private async Task LoadUsers()
+    {
+        users = await UserService.GetAllUsersAsync();
+    }
+
+    private async Task LoadWorkspaces()
+    {
+        workspaces = await WorkspaceService.GetAllWorkspacesAsync();
+    }
+
+    private void ShowCreateUserForm()
+    {
+        showCreateUser = true;
+        newUser = new ApplicationUser();
+    }
+
+    private async Task CreateUser()
+    {
+        // Hash password, but for simplicity, assume it's plain
+        await UserService.CreateUserAsync(newUser);
+        showCreateUser = false;
+        await LoadUsers();
+    }
+
+    private void CancelCreateUser()
+    {
+        showCreateUser = false;
+    }
+
+    private void EditUser(ApplicationUser user)
+    {
+        editingUser = user;
+    }
+
+    private async Task UpdateUser()
+    {
+        await UserService.UpdateUserAsync(editingUser);
+        editingUser = null;
+        await LoadUsers();
+    }
+
+    private void CancelEditUser()
+    {
+        editingUser = null;
+    }
+
+    private async Task DeleteUser(int id)
+    {
+        await UserService.DeleteUserAsync(id);
+        await LoadUsers();
+    }
+
+    private void AssignUserToWorkspace(Workspace workspace)
+    {
+        assigningWorkspace = workspace;
+        selectedUserId = 0;
+    }
+
+    private async Task ConfirmAssignUser()
+    {
+        if (assigningWorkspace != null && selectedUserId > 0)
+        {
+            assigningWorkspace.OwnerId = selectedUserId;
+            await WorkspaceService.UpdateWorkspaceAsync(assigningWorkspace);
+            assigningWorkspace = null;
+            await LoadWorkspaces();
+        }
+    }
+
+    private void CancelAssign()
+    {
+        assigningWorkspace = null;
+    }
+
+    private async Task UpdateStorageTypeAsync()
+    {
+        await ConfigurationService.SetStorageTypeAsync(storageType);
+    }
+}

@@ -1,0 +1,113 @@
+@page "/gallery"
+@inject IGalleryService GalleryService
+@inject IStorageService StorageService
+@inject ICurrentUserService CurrentUserService
+
+<PageTitle>Gallery - SharedHosting</PageTitle>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="mb-0"><i class="fas fa-images text-info me-3"></i>Gallery</h1>
+        <p class="text-muted mt-2">Browse your media files</p>
+    </div>
+</div>
+
+@if (galleryItems == null)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3 text-muted">Loading gallery...</p>
+    </div>
+}
+else if (!galleryItems.Any())
+{
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-images fa-3x text-muted mb-3"></i>
+            <h4 class="card-title">No media files found</h4>
+            <p class="card-text text-muted">Upload some images or videos to see them here.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="gallery-grid">
+        @foreach (var item in galleryItems)
+        {
+            <div class="gallery-item card">
+                <div class="card-body p-0">
+                    @if (item.File.ContentType?.StartsWith("image/") == true)
+                    {
+                        <img src="@item.Url" alt="@item.File.Name" class="card-img-top" />
+                    }
+                    else if (item.File.ContentType?.StartsWith("video/") == true)
+                    {
+                        <video src="@item.Url" controls class="card-img-top"></video>
+                    }
+                    <div class="p-3">
+                        <h6 class="card-title mb-1">
+                            <i class="fas fa-file me-1"></i>@item.File.Name
+                        </h6>
+                        <small class="text-muted">
+                            <i class="fas fa-weight me-1"></i>@FormatFileSize(item.File.Size) •
+                            <i class="fas fa-calendar me-1"></i>@item.File.CreatedAt.ToShortDateString()
+                        </small>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<GalleryItem>? galleryItems;
+    private ApplicationUser? currentUser;
+
+    private class GalleryItem
+    {
+        public SharedFile File { get; set; } = null!;
+        public string Url { get; set; } = string.Empty;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = CurrentUserService.GetCurrentUser();
+        var allowedTypes = GetAllowedFolderTypes();
+        var files = await GalleryService.GetAllGalleryFilesAsync(allowedTypes);
+        galleryItems = new List<GalleryItem>();
+        foreach (var file in files)
+        {
+            var path = $"{file.Folder.WorkspaceId}/{file.FolderId}/{file.Id}_{file.Name}";
+            var url = await StorageService.GetUrlAsync(path);
+            galleryItems.Add(new GalleryItem { File = file, Url = url });
+        }
+    }
+
+    private FolderType[] GetAllowedFolderTypes()
+    {
+        if (currentUser == null)
+        {
+            return new[] { FolderType.Public };
+        }
+        if (currentUser.Role == UserRole.Admin)
+        {
+            return new[] { FolderType.Public, FolderType.Shared };
+        }
+        return new[] { FolderType.Public, FolderType.Shared };
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        int order = 0;
+        double size = bytes;
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
+        }
+        return $"{size:0.##} {sizes[order]}";
+    }
+}

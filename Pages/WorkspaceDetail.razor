@@ -1,0 +1,222 @@
+@page "/workspace/{id:int}"
+@inject IFolderService FolderService
+@inject IFileService FileService
+@inject ICurrentUserService CurrentUserService
+
+<PageTitle>Workspace Detail - SharedHosting</PageTitle>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="mb-0"><i class="fas fa-folder-open text-primary me-3"></i>Workspace Detail</h1>
+                <p class="text-muted mt-2">Manage folders and files in this workspace</p>
+            </div>
+            <a href="/dashboard" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+@if (folders == null)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3 text-muted">Loading folders...</p>
+    </div>
+}
+else
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-folder text-warning me-2"></i>Folders</h5>
+        </div>
+        <div class="card-body">
+            @if (!folders.Any())
+            {
+                <p class="text-muted text-center py-3">No folders in this workspace.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-folder me-1"></i>Name</th>
+                                <th><i class="fas fa-tag me-1"></i>Type</th>
+                                <th><i class="fas fa-calendar me-1"></i>Created</th>
+                                <th><i class="fas fa-cogs me-1"></i>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var folder in folders)
+                            {
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-folder text-warning me-2"></i>@folder.Name
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">@folder.Type</span>
+                                    </td>
+                                    <td>@folder.CreatedAt.ToShortDateString()</td>
+                                    <td>
+                                        <a href="/file-manager/@Id/@folder.Id" class="btn btn-outline-primary btn-sm me-2">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        @if (CanManageFolder(folder))
+                                        {
+                                            <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteFolder(folder.Id)">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@if (selectedFolder != null)
+{
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-file text-info me-2"></i>Files in @selectedFolder.Name</h5>
+        </div>
+        <div class="card-body">
+            @if (files == null)
+            {
+                <div class="text-center py-3">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading files...</p>
+                </div>
+            }
+            else if (!files.Any())
+            {
+                <p class="text-muted text-center py-3">No files in this folder.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-file me-1"></i>Name</th>
+                                <th><i class="fas fa-weight me-1"></i>Size</th>
+                                <th><i class="fas fa-calendar me-1"></i>Uploaded</th>
+                                <th><i class="fas fa-cogs me-1"></i>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var file in files)
+                            {
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-file text-secondary me-2"></i>@file.Name
+                                    </td>
+                                    <td>@FormatFileSize(file.Size)</td>
+                                    <td>@file.CreatedAt.ToShortDateString()</td>
+                                    <td>
+                                        <button class="btn btn-outline-primary btn-sm me-2" @onclick="() => DownloadFile(file.Id)">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                        @if (CanManageFolder(selectedFolder))
+                                        {
+                                            <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteFile(file.Id)">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private IEnumerable<Folder>? folders;
+    private Folder? selectedFolder;
+    private IEnumerable<SharedFile>? files;
+    private ApplicationUser currentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = CurrentUserService.GetCurrentUser();
+        var allFolders = await FolderService.GetFoldersByWorkspaceAsync(Id);
+        folders = allFolders.Where(f => CanAccessFolder(f));
+    }
+
+    private bool CanAccessFolder(Folder folder)
+    {
+        if (currentUser.Role == UserRole.Admin) return true;
+        if (folder.Workspace.OwnerId == currentUser.Id) return true;
+        return folder.Type == FolderType.Public || folder.Type == FolderType.Shared;
+    }
+
+    private async Task ViewFolder(int folderId)
+    {
+        selectedFolder = await FolderService.GetFolderByIdAsync(folderId);
+        if (selectedFolder != null)
+        {
+            files = await FileService.GetFilesByFolderAsync(folderId);
+        }
+    }
+
+    private bool CanManageFolder(Folder folder)
+    {
+        return currentUser.Role == UserRole.Admin || folder.Workspace.OwnerId == currentUser.Id;
+    }
+
+    private async Task DeleteFolder(int id)
+    {
+        await FolderService.DeleteFolderAsync(id);
+        folders = await FolderService.GetFoldersByWorkspaceAsync(Id);
+        if (selectedFolder?.Id == id)
+        {
+            selectedFolder = null;
+            files = null;
+        }
+    }
+
+    private async Task DeleteFile(int id)
+    {
+        await FileService.DeleteFileAsync(id);
+        if (selectedFolder != null)
+        {
+            files = await FileService.GetFilesByFolderAsync(selectedFolder.Id);
+        }
+    }
+
+    private async Task DownloadFile(int id)
+    {
+        // For now, just log; actual download would require IStorageService
+        Console.WriteLine($"Download file {id}");
+    }
+
+    private string FormatFileSize(long bytes)
+    {
+        string[] sizes = { "B", "KB", "MB", "GB", "TB" };
+        int order = 0;
+        double size = bytes;
+        while (size >= 1024 && order < sizes.Length - 1)
+        {
+            order++;
+            size /= 1024;
+        }
+        return $"{size:0.##} {sizes[order]}";
+    }
+}

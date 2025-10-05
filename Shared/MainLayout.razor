@@ -1,0 +1,40 @@
+﻿@inherits LayoutComponentBase
+
+<PageTitle>SharedHosting</PageTitle>
+
+<div class="min-vh-100 d-flex flex-column">
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-server me-2"></i>SharedHosting
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="https://docs.microsoft.com/aspnet/" target="_blank">
+                            <i class="fas fa-info-circle me-1"></i>About
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="d-flex flex-grow-1">
+        <!-- Sidebar -->
+        <div class="bg-light border-end" style="width: 250px; min-height: calc(100vh - 56px);">
+            <NavMenu />
+        </div>
+
+        <!-- Main Content -->
+        <main class="flex-grow-1 bg-light">
+            <div class="container-fluid py-4">
+                @Body
+            </div>
+        </main>
+    </div>
+</div>

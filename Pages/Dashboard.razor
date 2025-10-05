@@ -1,0 +1,110 @@
+@page "/dashboard"
+@inject IWorkspaceService WorkspaceService
+@inject ICurrentUserService CurrentUserService
+
+<PageTitle>Dashboard - SharedHosting</PageTitle>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="mb-0"><i class="fas fa-tachometer-alt text-primary me-3"></i>Workspace Dashboard</h1>
+                <p class="text-muted mt-2">Manage your workspaces and files</p>
+            </div>
+            <a href="/create-workspace" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus-circle me-2"></i>Create Workspace
+            </a>
+        </div>
+    </div>
+</div>
+
+@if (workspaces == null)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3 text-muted">Loading workspaces...</p>
+    </div>
+}
+else if (!workspaces.Any())
+{
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+            <h4 class="card-title">No workspaces found</h4>
+            <p class="card-text text-muted">Get started by creating your first workspace.</p>
+            <a href="/create-workspace" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-2"></i>Create Your First Workspace
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row">
+        @foreach (var workspace in workspaces)
+        {
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm">
+                    <div class="card-header bg-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-folder text-primary me-2"></i>@workspace.Name
+                            </h5>
+                            @if (currentUser.Role == UserRole.Admin || workspace.OwnerId == currentUser.Id)
+                            {
+                                <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteWorkspace(workspace.Id)">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text text-muted">@workspace.Description</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar-alt me-1"></i>Created @workspace.CreatedAt.ToShortDateString()
+                            </small>
+                            <a href="/workspace/@workspace.Id" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye me-1"></i>View
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private IEnumerable<Workspace>? workspaces;
+    private ApplicationUser currentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        currentUser = CurrentUserService.GetCurrentUser();
+        if (currentUser.Role == UserRole.Admin)
+        {
+            workspaces = await WorkspaceService.GetAllWorkspacesAsync();
+        }
+        else
+        {
+            workspaces = await WorkspaceService.GetWorkspacesByOwnerAsync(currentUser.Id);
+        }
+    }
+
+    private async Task DeleteWorkspace(int id)
+    {
+        await WorkspaceService.DeleteWorkspaceAsync(id);
+        // Refresh the list
+        if (currentUser.Role == UserRole.Admin)
+        {
+            workspaces = await WorkspaceService.GetAllWorkspacesAsync();
+        }
+        else
+        {
+            workspaces = await WorkspaceService.GetWorkspacesByOwnerAsync(currentUser.Id);
+        }
+    }
+}

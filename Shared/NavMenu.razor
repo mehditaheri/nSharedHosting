@@ -1,0 +1,48 @@
+﻿@inject ICurrentUserService CurrentUserService
+
+<div class="p-3">
+    <nav class="nav flex-column">
+        <NavLink class="nav-link d-flex align-items-center py-3 px-2 mb-1 rounded" href="" Match="NavLinkMatch.All">
+            <i class="fas fa-tachometer-alt me-3 text-primary"></i>
+            <span>Dashboard</span>
+        </NavLink>
+        <NavLink class="nav-link d-flex align-items-center py-3 px-2 mb-1 rounded" href="create-workspace">
+            <i class="fas fa-plus-circle me-3 text-success"></i>
+            <span>Create Workspace</span>
+        </NavLink>
+        <NavLink class="nav-link d-flex align-items-center py-3 px-2 mb-1 rounded" href="file-manager">
+            <i class="fas fa-folder-open me-3 text-warning"></i>
+            <span>File Manager</span>
+        </NavLink>
+        <NavLink class="nav-link d-flex align-items-center py-3 px-2 mb-1 rounded" href="gallery">
+            <i class="fas fa-images me-3 text-info"></i>
+            <span>Gallery</span>
+        </NavLink>
+        <NavLink class="nav-link d-flex align-items-center py-3 px-2 mb-1 rounded" href="shared-files">
+            <i class="fas fa-share-alt me-3 text-secondary"></i>
+            <span>Shared Files</span>
+        </NavLink>
+        <NavLink class="nav-link d-flex align-items-center py-3 px-2 mb-1 rounded" href="public-files">
+            <i class="fas fa-globe me-3 text-primary"></i>
+            <span>Public Files</span>
+        </NavLink>
+        @if (CurrentUserService.GetCurrentUser().Role == UserRole.Admin)
+        {
+            <NavLink class="nav-link d-flex align-items-center py-3 px-2 mb-1 rounded" href="admin-panel">
+                <i class="fas fa-cog me-3 text-danger"></i>
+                <span>Admin Panel</span>
+            </NavLink>
+        }
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

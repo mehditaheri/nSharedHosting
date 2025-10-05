@@ -1,0 +1,64 @@
+﻿@page "/"
+
+<PageTitle>SharedHosting - Home</PageTitle>
+
+<div class="hero-section bg-primary text-white py-5">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="display-4 fw-bold mb-3">
+                    <i class="fas fa-server me-3"></i>SharedHosting
+                </h1>
+                <p class="lead mb-4">
+                    A powerful file sharing and workspace management platform built with Blazor.
+                    Organize your files, collaborate with teams, and manage your digital assets efficiently.
+                </p>
+                <div class="d-flex gap-3">
+                    <a href="/dashboard" class="btn btn-light btn-lg">
+                        <i class="fas fa-tachometer-alt me-2"></i>Go to Dashboard
+                    </a>
+                    <a href="/gallery" class="btn btn-outline-light btn-lg">
+                        <i class="fas fa-images me-2"></i>Browse Gallery
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-4 text-center">
+                <i class="fas fa-cloud-upload-alt fa-5x text-white-50"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-folder-open fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Organize Files</h5>
+                    <p class="card-text text-muted">Create workspaces and folders to keep your files organized and accessible.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-share-alt fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Share & Collaborate</h5>
+                    <p class="card-text text-muted">Share files with team members and control access permissions.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body text-center">
+                    <i class="fas fa-shield-alt fa-3x text-warning mb-3"></i>
+                    <h5 class="card-title">Secure Storage</h5>
+                    <p class="card-text text-muted">Your files are stored securely with multiple storage options available.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<SurveyPrompt Title="How is Blazor working for you?" />

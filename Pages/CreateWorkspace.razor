@@ -1,0 +1,66 @@
+@page "/create-workspace"
+@inject IWorkspaceService WorkspaceService
+@inject IFolderService FolderService
+@inject ICurrentUserService CurrentUserService
+@inject NavigationManager Navigation
+
+<PageTitle>Create Workspace - SharedHosting</PageTitle>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-6">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h1 class="h4 mb-0"><i class="fas fa-plus-circle me-2"></i>Create New Workspace</h1>
+            </div>
+            <div class="card-body">
+                <EditForm Model="workspace" OnValidSubmit="HandleValidSubmit">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary class="text-danger" />
+
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Workspace Name</label>
+                        <InputText id="name" @bind-Value="workspace.Name" class="form-control" placeholder="Enter workspace name" />
+                        <div class="form-text">Choose a descriptive name for your workspace</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="description" class="form-label">Description</label>
+                        <InputTextArea id="description" @bind-Value="workspace.Description" class="form-control" rows="3" placeholder="Describe the purpose of this workspace"></InputTextArea>
+                        <div class="form-text">Optional: Provide details about what this workspace will contain</div>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-plus-circle me-2"></i>Create Workspace
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+            <div class="card-footer text-muted">
+                <small><i class="fas fa-info-circle me-1"></i>A default "Shared Public" folder will be created automatically.</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private Workspace workspace = new();
+
+    private async Task HandleValidSubmit()
+    {
+        var currentUser = CurrentUserService.GetCurrentUser();
+        workspace.OwnerId = currentUser.Id;
+        workspace = await WorkspaceService.CreateWorkspaceAsync(workspace);
+
+        // Create default Shared Public folder
+        var publicFolder = new Folder
+        {
+            Name = "Shared Public",
+            Type = FolderType.Public,
+            WorkspaceId = workspace.Id
+        };
+        await FolderService.CreateFolderAsync(publicFolder);
+
+        Navigation.NavigateTo("/dashboard");
+    }
+}
